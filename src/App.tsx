@@ -4,11 +4,11 @@ import { useTasks } from './hooks/useTask';
 import { TaskForm } from './components/TaskForm';
 import { TaskItem } from './components/TaskItem';
 import { TaskStats } from './components/TaskStats';
-import type { Task, CreateTaskInput } from './lib/supabase';
+import type { CreateTaskInput } from './lib/supabase';
 import './App.css';
 
-type FilterType = 'all' | 'active' | 'completed' | 'overdue';
-type SortType = 'created_desc' | 'created_asc' | 'due_date' | 'priority';
+// type FilterType = 'all' | 'active' | 'completed' | 'overdue';
+// type SortType = 'created_desc' | 'created_asc' | 'due_date' | 'priority';
 
 function App() {
   const { session, loading: authLoading, error: authError, retry } = useAuth();
@@ -24,9 +24,9 @@ function App() {
     deleteTask,
   } = useTasks(session?.user?.id);
 
-  const [filter, setFilter] = useState<FilterType>('all');
-  const [sort, setSort] = useState<SortType>('created_desc');
-  const [searchQuery, setSearchQuery] = useState('');
+  // const [filter, setFilter] = useState<FilterType>('all');
+  // const [sort, setSort] = useState<SortType>('created_desc');
+  const [ searchQuery ] = useState('');
 
   // ✅ CREATE
   const handleCreateTask = async (input: CreateTaskInput) => {

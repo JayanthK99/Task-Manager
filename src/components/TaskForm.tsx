@@ -28,8 +28,10 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
     if (description.length > 2000) {
       newErrors.description = 'Description must be 2000 characters or less';
     }
-
-    if (dueDate) {
+    if (!dueDate) {
+    newErrors.dueDate = 'Due date is required';
+    }
+     else {
       const selectedDate = new Date(dueDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -55,12 +57,14 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
     setErrors({});
 
     try {
-      await onSubmit({
+      const input: CreateTaskInput = {
         title: title.trim(),
         description: description.trim() || undefined,
         priority,
-        due_date: dueDate || undefined,
-      });
+        due_date: dueDate,
+      };
+
+      await onSubmit(input);
 
       // Reset form on success
       setTitle('');
@@ -154,9 +158,12 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
             }}
             disabled={submitting}
             min={getTodayDate()}
+            required
             className={errors.dueDate ? 'error' : ''}
-            aria-label="Due date"
+            aria-label="Due date (required)"
             aria-invalid={!!errors.dueDate}
+            aria-required="true"
+            placeholder="Due date *"
           />
           {errors.dueDate && <span className="error-text">{errors.dueDate}</span>}
         </div>

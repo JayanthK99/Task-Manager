@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase, type Task, type CreateTaskInput, TaskError } from '../lib/supabase';
 
 export function useTasks(userId: string | undefined) {
@@ -11,9 +11,6 @@ export function useTasks(userId: string | undefined) {
     pending: 0,
     overdue: 0,
   });
-  
-  const isMountedRef = useRef(true);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchTasks = useCallback(async () => {
     if (!userId) {
@@ -32,146 +29,69 @@ export function useTasks(userId: string | undefined) {
 
       if (error) throw new TaskError('Failed to fetch tasks', error.code, error);
 
-      if (isMountedRef.current) {
-        setTasks(data || []);
-        
-        // Calculate stats
-        const total = data?.length || 0;
-        const completed = data?.filter(t => t.is_complete).length || 0;
-        const pending = total - completed;
-        const overdue = data?.filter(
-          t => !t.is_complete && t.due_date && new Date(t.due_date) < new Date()
-        ).length || 0;
-        
-        setStats({ total, completed, pending, overdue });
-      }
+      setTasks(data || []);
+      
+      // Calculate stats
+      const total = data?.length || 0;
+      const completed = data?.filter(t => t.is_complete).length || 0;
+      const pending = total - completed;
+      const overdue = data?.filter(
+        t => !t.is_complete && t.due_date && new Date(t.due_date) < new Date()
+      ).length || 0;
+      
+      setStats({ total, completed, pending, overdue });
+      
     } catch (err) {
       console.error('Fetch tasks error:', err);
-      if (isMountedRef.current) {
-        setError(err instanceof TaskError ? err.message : 'Failed to fetch tasks');
-      }
+      setError(err instanceof TaskError ? err.message : 'Failed to fetch tasks');
     } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   }, [userId]);
 
   useEffect(() => {
-    isMountedRef.current = true;
-
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-
-    // Initial fetch
     fetchTasks();
+  }, [fetchTasks]);
 
-    // Set up real-time subscription
-    const channel = supabase
-      .channel(`tasks_${userId}_${Date.now()}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'tasks',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          if (!isMountedRef.current) return;
-
-          console.log('Real-time event:', payload.eventType);
-
-          if (payload.eventType === 'INSERT') {
-            const newTask = payload.new as Task;
-            setTasks(prev => {
-              // Prevent duplicates
-              if (prev.some(t => t.id === newTask.id)) {
-                return prev;
-              }
-              return [newTask, ...prev];
-            });
-          } else if (payload.eventType === 'UPDATE') {
-            setTasks(prev =>
-              prev.map(task =>
-                task.id === payload.new.id ? (payload.new as Task) : task
-              )
-            );
-          } else if (payload.eventType === 'DELETE') {
-            setTasks(prev => prev.filter(task => task.id !== payload.old.id));
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('Subscription status:', status);
-      });
-
-    channelRef.current = channel;
-
-    return () => {
-      isMountedRef.current = false;
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [userId, fetchTasks]);
-
-const createTask = useCallback(
-  async (input: CreateTaskInput) => {
-    if (!userId) {
-      throw new TaskError('User not authenticated');
-    }
-
-    const title = input.title?.trim();
-    if (!title || title.length === 0) {
-      throw new TaskError('Task title is required');
-    }
-    if (title.length > 500) {
-      throw new TaskError('Task title must be 500 characters or less');
-    }
-    if (input.description && input.description.length > 2000) {
-      throw new TaskError('Task description must be 2000 characters or less');
-    }
-
-    try {
-      setError(null);
-
-      const newTask = {
-        user_id: userId,
-        title,
-        description: input.description?.trim() || null,
-        priority: input.priority || 'normal',
-        due_date: input.due_date || null,
-      };
-
-      const { error } = await supabase
-        .from('tasks')
-        .insert(newTask)
-        .select()
-        .single();
-
-      if (error) {
-        throw new TaskError('Failed to create task', error.code, error);
+  const createTask = useCallback(
+    async (input: CreateTaskInput) => {
+      if (!userId) {
+        throw new TaskError('User not authenticated');
       }
 
-      // ✅ Force refresh after creating
-      await fetchTasks();
-      
-      console.log('Task created successfully');
-    } catch (err) {
-      console.error('Create task error:', err);
-      const errorMessage = err instanceof TaskError 
-        ? err.message 
-        : 'Failed to create task';
-      setError(errorMessage);
-      throw err;
-    }
-  },
-  [userId, fetchTasks]
-);
+      const title = input.title?.trim();
+      if (!title) {
+        throw new TaskError('Task title is required');
+      }
+
+      try {
+        setError(null);
+
+        const newTask = {
+          user_id: userId,
+          title,
+          description: input.description?.trim() || null,
+          priority: input.priority || 'normal',
+          due_date: input.due_date || null,
+        };
+
+        const { error } = await supabase
+          .from('tasks')
+          .insert(newTask);
+
+        if (error) throw new TaskError('Failed to create task', error.code, error);
+
+        await fetchTasks();
+        console.log('Task created');
+      } catch (err) {
+        console.error('Create task error:', err);
+        const errorMessage = err instanceof TaskError ? err.message : 'Failed to create task';
+        setError(errorMessage);
+        throw err;
+      }
+    },
+    [userId, fetchTasks]
+  );
 
   const updateTask = useCallback(
     async (taskId: string, updates: Partial<CreateTaskInput>) => {
@@ -179,26 +99,8 @@ const createTask = useCallback(
         throw new TaskError('User not authenticated');
       }
 
-      // Validate updates
-      if (updates.title !== undefined) {
-        const title = updates.title.trim();
-        if (!title || title.length === 0) {
-          throw new TaskError('Task title cannot be empty');
-        }
-        if (title.length > 500) {
-          throw new TaskError('Task title must be 500 characters or less');
-        }
-      }
-
       try {
         setError(null);
-
-        // Optimistic update
-        setTasks(prev =>
-          prev.map(task =>
-            task.id === taskId ? { ...task, ...updates } : task
-          )
-        );
 
         const { error } = await supabase
           .from('tasks')
@@ -206,18 +108,13 @@ const createTask = useCallback(
           .eq('id', taskId)
           .eq('user_id', userId);
 
-        if (error) {
-          // Revert optimistic update
-          await fetchTasks();
-          throw new TaskError('Failed to update task', error.code, error);
-        }
+        if (error) throw new TaskError('Failed to update task', error.code, error);
 
-        console.log('Task updated successfully');
+        await fetchTasks();
+        console.log('Task updated');
       } catch (err) {
         console.error('Update task error:', err);
-        const errorMessage = err instanceof TaskError 
-          ? err.message 
-          : 'Failed to update task';
+        const errorMessage = err instanceof TaskError ? err.message : 'Failed to update task';
         setError(errorMessage);
         throw err;
       }
@@ -227,13 +124,10 @@ const createTask = useCallback(
 
   const toggleTask = useCallback(
     async (taskId: string, currentStatus: boolean) => {
+      if (!userId) return;
+
       try {
-        // Optimistic update
-        setTasks(prev =>
-          prev.map(task =>
-            task.id === taskId ? { ...task, is_complete: !currentStatus } : task
-          )
-        );
+        setError(null);
 
         const { error } = await supabase
           .from('tasks')
@@ -241,26 +135,17 @@ const createTask = useCallback(
           .eq('id', taskId)
           .eq('user_id', userId);
 
-        if (error) {
-          // Revert on error
-          setTasks(prev =>
-            prev.map(task =>
-              task.id === taskId ? { ...task, is_complete: currentStatus } : task
-            )
-          );
-          throw new TaskError('Failed to toggle task', error.code, error);
-        }
+        if (error) throw new TaskError('Failed to toggle task', error.code, error);
 
-        console.log('Task toggled successfully');
+        await fetchTasks();
+        console.log('Task toggled');
       } catch (err) {
         console.error('Toggle task error:', err);
-        const errorMessage = err instanceof TaskError 
-          ? err.message 
-          : 'Failed to toggle task';
+        const errorMessage = err instanceof TaskError ? err.message : 'Failed to toggle task';
         setError(errorMessage);
       }
     },
-    [userId]
+    [userId, fetchTasks]
   );
 
   const deleteTask = useCallback(
@@ -269,13 +154,8 @@ const createTask = useCallback(
         throw new TaskError('User not authenticated');
       }
 
-      const originalTasks = [...tasks];
-
       try {
         setError(null);
-
-        // Optimistic delete
-        setTasks(prev => prev.filter(task => task.id !== taskId));
 
         const { error } = await supabase
           .from('tasks')
@@ -283,23 +163,18 @@ const createTask = useCallback(
           .eq('id', taskId)
           .eq('user_id', userId);
 
-        if (error) {
-          // Revert on error
-          setTasks(originalTasks);
-          throw new TaskError('Failed to delete task', error.code, error);
-        }
+        if (error) throw new TaskError('Failed to delete task', error.code, error);
 
-        console.log('Task deleted successfully');
+        await fetchTasks();
+        console.log('Task deleted');
       } catch (err) {
         console.error('Delete task error:', err);
-        const errorMessage = err instanceof TaskError 
-          ? err.message 
-          : 'Failed to delete task';
+        const errorMessage = err instanceof TaskError ? err.message : 'Failed to delete task';
         setError(errorMessage);
         throw err;
       }
     },
-    [userId, tasks]
+    [userId, fetchTasks]
   );
 
   return {

@@ -1,20 +1,20 @@
-/* =========================
+/*  
    RESET
-========================= */
+  */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* =========================
+/*  
    LIGHT BLUE SIMPLE THEME
-========================= */
+  */
 :root {
   /* Backgrounds */
-  --bg-main: #dbeafe;        /* light blue page */
-  --bg-elevated: #e8f0ff;   /* main container */
-  --bg-card: #edf4ff;       /* cards */
+  --bg-main: #dbeafe;       
+  --bg-elevated: #e8f0ff;   
+  --bg-card: #edf4ff;      
   --bg-hover: #d6e6ff;
 
   /* Text */
@@ -40,9 +40,9 @@
   --transition: all 0.2s ease;
 }
 
-/* =========================
+/*  
    BASE
-========================= */
+  */
 body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
     "Segoe UI", Roboto, sans-serif;
@@ -57,9 +57,9 @@ body {
   margin: auto;
 }
 
-/* =========================
+/*  
    HEADER
-========================= */
+  */
 header {
   text-align: center;
   margin-bottom: 30px;
@@ -75,18 +75,18 @@ header h1 {
   font-size: 0.95rem;
 }
 
-/* =========================
+/*  
    MAIN CONTAINER
-========================= */
+  */
 main {
   background: var(--bg-elevated);
   padding: 32px;
   border-radius: var(--radius-lg);
 }
 
-/* =========================
+/*  
    STATS
-========================= */
+  */
 .task-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -114,9 +114,9 @@ main {
   color: var(--text-secondary);
 }
 
-/* =========================
+/*  
    PROGRESS
-========================= */
+  */
 .progress-bar {
   height: 6px;
   background: #c3dafe;
@@ -129,9 +129,9 @@ main {
   background: var(--accent);
 }
 
-/* =========================
+/*  
    FORM
-========================= */
+  */
 .task-form {
   display: flex;
   flex-direction: column;
@@ -169,9 +169,9 @@ main {
   color: var(--text-secondary);
 }
 
-/* =========================
+/*  
    BUTTON
-========================= */
+  */
 .task-form button {
   padding: 14px;
   background: var(--accent);
@@ -188,9 +188,9 @@ main {
   background: #2563eb;
 }
 
-/* =========================
+/*  
    CONTROLS
-========================= */
+  */
 .controls {
   background: var(--bg-card);
   padding: 14px;
@@ -221,9 +221,9 @@ main {
   border-color: var(--accent);
 }
 
-/* =========================
+/*  
    TASK LIST
-========================= */
+  */
 .tasks-list {
   display: flex;
   flex-direction: column;
@@ -254,9 +254,7 @@ main {
   color: var(--text-secondary);
 }
 
-/* =========================
-   BADGES
-========================= */
+/* BADGES */
 .priority-badge,
 .due-date {
   padding: 4px 10px;
@@ -286,9 +284,7 @@ main {
   color: var(--danger);
 }
 
-/* =========================
-   FOOTER
-========================= */
+/* FOOTER*/
 footer {
   text-align: center;
   margin-top: 26px;
@@ -296,9 +292,7 @@ footer {
   font-size: 0.85rem;
 }
 
-/* =========================
-   RESPONSIVE
-========================= */
+/*    RESPONSIVE */
 @media (max-width: 768px) {
   main {
     padding: 22px;
